@@ -1,0 +1,836 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Стресс-тест платежного календаря — 2027</title>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .fd-scenario-widget {
+    --blue: #1F4E79;
+    --blue-hover: #326999;
+    --yellow: #FFF2CC;
+    --yellow-hover: #FFE49A;
+    --teal: #367879;
+    --text: #2A2F33;
+    --accent: #F5811F;
+
+    width: 100%;
+    max-width: 757px;
+    margin: 0;
+    color: var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .fd-scenario-stage {
+    position: relative;
+    width: 100%;
+    isolation: isolate;
+  }
+
+  /* Верхняя синяя полоса */
+
+  .fd-scenario-title {
+    display: flex;
+    align-items: center;
+    min-height: 43px;
+    padding: 8px 5px;
+    background: var(--blue);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  /* Таблица */
+
+  .fd-scenario-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin: 0;
+    background: #fff;
+  }
+
+  .fd-scenario-table col.factor {
+    width: 29.6%;
+  }
+
+  .fd-scenario-table col.month,
+  .fd-scenario-table col.change {
+    width: 10.2%;
+  }
+
+  .fd-scenario-table th,
+  .fd-scenario-table td {
+    border: 1px solid #222;
+    vertical-align: middle;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  /* Строка выбора сценария — без увеличения */
+
+  .fd-scenario-table .choice-row td {
+    height: 43px;
+    padding: 4px 3px;
+    border-color: #d6d6d6;
+    background: #fff;
+    font-size: 12.5px;
+    line-height: 1.2;
+  }
+
+  .fd-scenario-table .choice-label {
+    text-align: right;
+    font-style: italic;
+  }
+
+  .fd-scenario-table .choice-field {
+    padding: 0 !important;
+    background: var(--yellow);
+    border: 2px solid var(--blue) !important;
+  }
+
+  .fd-scenario-table .user-head {
+    background: var(--blue) !important;
+    border-color: var(--blue) !important;
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  /* Выпадающий список */
+
+  .fd-scenario-select {
+    display: block;
+    width: 100%;
+    height: 39px;
+    padding: 0 25px 0 7px;
+    border: 0;
+    border-radius: 0;
+    outline-offset: -2px;
+
+    background-color: var(--yellow);
+    color: var(--text);
+
+    font: 12.5px Arial, Helvetica, sans-serif;
+    cursor: pointer;
+
+    appearance: none;
+    -webkit-appearance: none;
+
+    background-image:
+      linear-gradient(45deg, transparent 50%, #555 50%),
+      linear-gradient(135deg, #555 50%, transparent 50%),
+      linear-gradient(#eeeeee, #d9d9d9);
+
+    background-position:
+      calc(100% - 14px) 17px,
+      calc(100% - 9px) 17px,
+      right center;
+
+    background-size:
+      5px 5px,
+      5px 5px,
+      21px 100%;
+
+    background-repeat: no-repeat;
+  }
+
+  .fd-scenario-select:focus-visible {
+    outline: 2px solid var(--accent);
+  }
+
+  /* Заголовки столбцов — без увеличения */
+
+  .fd-scenario-table .column-head th {
+    height: 47px;
+    padding: 6px 2px;
+    background: var(--blue);
+    color: white;
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  /* Основная часть таблицы */
+
+  .fd-scenario-table tbody td {
+    height: 29px;
+    padding: 5px 3px;
+    background: white;
+    color: #111;
+    font-size: 12.5px;
+    line-height: 1.22;
+  }
+
+  .fd-scenario-table tbody td:nth-child(3),
+  .fd-scenario-table tbody td:nth-child(6) {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Пользовательский сценарий */
+
+  .fd-scenario-table tbody td:nth-child(5),
+  .fd-scenario-table tbody td:nth-child(6) {
+    background: var(--yellow);
+  }
+
+  .fd-scenario-table tbody td:nth-child(4) {
+    border-left-width: 2px;
+  }
+
+  /* Подсветка левой части при переключении */
+
+  @keyframes fdScenarioFlash {
+    0% {
+      background-color: #A5DCDD;
+    }
+
+    35% {
+      background-color: #C5EAEB;
+    }
+
+    100% {
+      background-color: #FFFFFF;
+    }
+  }
+
+  .fd-scenario-table tbody td.fd-flash {
+    animation: fdScenarioFlash 850ms ease-out;
+  }
+
+  /* Только ячейки с данными можно увеличить */
+
+  .fd-scenario-table tbody td.fd-zoomable {
+    cursor: zoom-in;
+  }
+
+  .fd-scenario-table tbody td.fd-zoomable:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  /* Увеличенная копия отдельной ячейки */
+
+  .fd-cell-zoom {
+    position: absolute;
+    z-index: 100;
+    left: 0;
+    top: 0;
+
+    display: flex;
+    align-items: center;
+
+    padding: 7px 9px;
+    background: #DFF2F3;
+    color: var(--text);
+    border: 1px solid var(--teal);
+
+    box-shadow: 0 7px 18px rgba(42,47,51,.20);
+
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 15px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+
+    opacity: 0;
+    visibility: hidden;
+
+    transform: scaleY(.84);
+    transform-origin: center;
+
+    transition:
+      opacity .18s ease-out,
+      transform .24s ease-out,
+      visibility .18s;
+
+    pointer-events: none;
+  }
+
+  .fd-cell-zoom.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: scaleY(1);
+  }
+
+  .fd-cell-zoom.yellow {
+    background: var(--yellow-hover);
+    border-color: #B18F20;
+  }
+
+  .fd-cell-zoom.number {
+    justify-content: flex-end;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Адаптация */
+
+  @media (max-width: 600px) {
+    .fd-scenario-title {
+      font-size: 12px;
+    }
+
+    .fd-scenario-table .choice-row td,
+    .fd-scenario-select {
+      font-size: 11px;
+    }
+
+    .fd-scenario-table .column-head th {
+      font-size: 10.5px;
+      padding: 5px 1px;
+    }
+
+    .fd-scenario-table tbody td {
+      font-size: 11px;
+      padding: 4px 2px;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .fd-scenario-table .column-head th,
+    .fd-scenario-table tbody td {
+      font-size: 9.5px;
+    }
+
+    .fd-scenario-table .choice-row td,
+    .fd-scenario-select {
+      font-size: 10px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fd-cell-zoom {
+      transition: none;
+    }
+
+    .fd-scenario-table tbody td.fd-flash {
+      animation: none;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+<section class="fd-scenario-widget" id="fdScenarioWidget">
+
+  <div class="fd-scenario-stage">
+
+    <div class="fd-scenario-title">
+      СТРЕСС-ТЕСТ ПЛАТЕЖНОГО КАЛЕНДАРЯ — 2027
+    </div>
+
+    <table class="fd-scenario-table">
+
+      <colgroup>
+        <col class="factor">
+        <col class="month">
+        <col class="change">
+        <col class="factor">
+        <col class="month">
+        <col class="change">
+      </colgroup>
+
+      <thead>
+
+        <!-- Выбор сценария: не увеличивается -->
+
+        <tr class="choice-row">
+
+          <td class="choice-label">
+            Выберите сценарий
+          </td>
+
+          <td class="choice-field" colspan="2">
+            <select
+              class="fd-scenario-select"
+              id="fdScenarioSelect"
+              aria-label="Выберите стресс-сценарий"
+            >
+              <option value="combined">
+                Комбинированный стресс
+              </option>
+
+              <option value="rates">
+                Дорогие деньги
+              </option>
+
+              <option value="import">
+                Импортный шок
+              </option>
+
+              <option value="price">
+                Ценовая война
+              </option>
+
+              <option value="moderate">
+                Умеренное давление
+              </option>
+
+              <option value="demand" selected>
+                Сжатие спроса
+              </option>
+            </select>
+          </td>
+
+          <td></td>
+
+          <td class="user-head" colspan="2">
+            Пользовательский<br>сценарий
+          </td>
+
+        </tr>
+
+        <!-- Заголовки: не увеличиваются -->
+
+        <tr class="column-head">
+          <th scope="col">Фактор</th>
+          <th scope="col">Месяц<br>начала</th>
+          <th scope="col">Изменение</th>
+
+          <th scope="col">Фактор</th>
+          <th scope="col">Месяц<br>начала</th>
+          <th scope="col">Изменение</th>
+        </tr>
+
+      </thead>
+
+      <!-- Только эти ячейки увеличиваются -->
+
+      <tbody id="fdScenarioBody"></tbody>
+
+    </table>
+
+    <div
+      class="fd-cell-zoom"
+      id="fdCellZoom"
+      aria-hidden="true"
+    ></div>
+
+  </div>
+
+</section>
+
+<script>
+(function () {
+  "use strict";
+
+  const root = document.getElementById("fdScenarioWidget");
+
+  if (!root || root.dataset.ready === "1") return;
+  root.dataset.ready = "1";
+
+  const stage = root.querySelector(".fd-scenario-stage");
+  const table = root.querySelector(".fd-scenario-table");
+  const tbody = document.getElementById("fdScenarioBody");
+  const select = document.getElementById("fdScenarioSelect");
+  const zoom = document.getElementById("fdCellZoom");
+
+  const canHover = window.matchMedia(
+    "(hover: hover) and (pointer: fine)"
+  ).matches;
+
+  const factors = [
+    "Цены поставщиков",
+    "Основное сырье",
+    "Электроэнергия",
+    "Газ",
+    "Цены конкурентов",
+    "Рыночный спрос",
+    "USD",
+    "EUR",
+    "Ключевая ставка",
+    "Логистика",
+    "Задержка оплаты покупателями",
+    "Поставщики требуют платить раньше"
+  ];
+
+  /* Шесть сценариев по Excel-скриншотам */
+
+  const scenarios = {
+
+    combined: [
+      ["Январь", "20%"],
+      ["Январь", "25%"],
+      ["Январь", "15%"],
+      ["Январь", "15%"],
+      ["Январь", "-15%"],
+      ["Январь", "-20%"],
+      ["Январь", "30%"],
+      ["Январь", "35%"],
+      ["Январь", "5,0 п.п."],
+      ["Январь", "25%"],
+      ["Январь", "30 дн"],
+      ["Январь", "15 дн"]
+    ],
+
+    rates: [
+      ["Январь", "10%"],
+      ["Февраль", "10%"],
+      ["Февраль", "8%"],
+      ["Февраль", "8%"],
+      ["Февраль", "-5%"],
+      ["Март", "-7%"],
+      ["Февраль", "10%"],
+      ["Февраль", "10%"],
+      ["Январь", "4,0 п.п."],
+      ["Февраль", "10%"],
+      ["Январь", "15 дн"],
+      ["Январь", "10 дн"]
+    ],
+
+    import: [
+      ["Февраль", "10%"],
+      ["Январь", "15%"],
+      ["Март", "8%"],
+      ["Март", "5%"],
+      ["Март", "-5%"],
+      ["Март", "-5%"],
+      ["Январь", "20%"],
+      ["Январь", "25%"],
+      ["Март", "2,0 п.п."],
+      ["Январь", "20%"],
+      ["Февраль", "10 дн"],
+      ["Февраль", "7 дн"]
+    ],
+
+    price: [
+      ["Февраль", "5%"],
+      ["Март", "5%"],
+      ["Март", "5%"],
+      ["Март", "5%"],
+      ["Январь", "-15%"],
+      ["Февраль", "-3%"],
+      ["Январь", "5%"],
+      ["Январь", "5%"],
+      ["Январь", "0,0 п.п."],
+      ["Март", "5%"],
+      ["Февраль", "7 дн"],
+      ["Март", "5 дн"]
+    ],
+
+    moderate: [
+      ["Февраль", "5%"],
+      ["Март", "5%"],
+      ["Март", "5%"],
+      ["Март", "5%"],
+      ["Март", "-5%"],
+      ["Январь", "0%"],
+      ["Январь", "5%"],
+      ["Январь", "5%"],
+      ["Апрель", "-2,0 п.п."],
+      ["Март", "5%"],
+      ["Март", "5 дн"],
+      ["Январь", "0 дн"]
+    ],
+
+    demand: [
+      ["Февраль", "10%"],
+      ["Февраль", "10%"],
+      ["Февраль", "5%"],
+      ["Февраль", "5%"],
+      ["Январь", "-10%"],
+      ["Январь", "-15%"],
+      ["Февраль", "10%"],
+      ["Февраль", "10%"],
+      ["Март", "2,0 п.п."],
+      ["Февраль", "10%"],
+      ["Январь", "20 дн"],
+      ["Февраль", "10 дн"]
+    ]
+  };
+
+  /* Правая часть всегда остается неизменной */
+
+  const customScenario = [
+    ["Январь", "10%"],
+    ["Январь", "10%"],
+    ["Январь", "10%"],
+    ["Январь", "10%"],
+    ["Январь", "-5%"],
+    ["Январь", "-5%"],
+    ["Январь", "10%"],
+    ["Январь", "10%"],
+    ["Январь", "2,0 п.п."],
+    ["Январь", "10%"],
+    ["Январь", "10 дн"],
+    ["Январь", "5 дн"]
+  ];
+
+  let activeCell = null;
+  let pinnedCell = null;
+
+  function hideZoom() {
+    zoom.classList.remove("visible");
+    activeCell = null;
+  }
+
+  function renderScenario(key, animate = false) {
+    hideZoom();
+    pinnedCell = null;
+
+    const leftScenario = scenarios[key];
+    const fragment = document.createDocumentFragment();
+
+    factors.forEach((factor, index) => {
+      const tr = document.createElement("tr");
+
+      const values = [
+        factor,
+        leftScenario[index][0],
+        leftScenario[index][1],
+        factor,
+        customScenario[index][0],
+        customScenario[index][1]
+      ];
+
+      values.forEach((value, columnIndex) => {
+        const td = document.createElement("td");
+
+        td.textContent = value;
+        td.className = "fd-zoomable";
+        td.tabIndex = 0;
+
+        if (animate && columnIndex < 3) {
+          td.classList.add("fd-flash");
+        }
+
+        tr.appendChild(td);
+      });
+
+      fragment.appendChild(tr);
+    });
+
+    tbody.replaceChildren(fragment);
+  }
+
+  /* Увеличение только ячеек основной таблицы */
+
+  function showZoom(cell) {
+    if (!cell || !cell.closest("tbody")) return;
+    if (!cell.textContent.trim()) return;
+
+    activeCell = cell;
+    zoom.className = "fd-cell-zoom";
+    zoom.textContent = cell.textContent.trim();
+
+    const rect = cell.getBoundingClientRect();
+    const stageRect = stage.getBoundingClientRect();
+
+    const column = cell.cellIndex;
+
+    const isYellow =
+      column === 4 || column === 5;
+
+    const isNumber =
+      column === 2 || column === 5;
+
+    if (isYellow) zoom.classList.add("yellow");
+    if (isNumber) zoom.classList.add("number");
+
+    const fontSize = parseFloat(
+      getComputedStyle(cell).fontSize
+    );
+
+    zoom.style.fontSize = fontSize * 1.2 + "px";
+
+    const baseWidth = rect.width;
+    const baseHeight = rect.height;
+    const stageWidth = stageRect.width;
+
+    let zoomWidth = baseWidth * 1.2;
+
+    if (isNumber) {
+      zoomWidth = Math.max(
+        zoomWidth,
+        baseWidth * 1.4
+      );
+    }
+
+    if (zoom.textContent.length > 27) {
+      zoomWidth = Math.max(
+        zoomWidth,
+        baseWidth * 1.28
+      );
+    }
+
+    zoomWidth = Math.min(zoomWidth, stageWidth);
+
+    const x = rect.left - stageRect.left;
+    const y = rect.top - stageRect.top;
+
+    let left;
+
+    if (column === 0) {
+      /* Левый столбец расширяется вправо */
+      left = x;
+
+    } else if (column === 5) {
+      /* Правый столбец расширяется влево */
+      left = x + baseWidth - zoomWidth;
+
+    } else {
+      /* Остальные — от центра */
+      left = x + (baseWidth - zoomWidth) / 2;
+    }
+
+    left = Math.max(
+      0,
+      Math.min(left, stageWidth - zoomWidth)
+    );
+
+    zoom.style.left = left + "px";
+    zoom.style.width = zoomWidth + "px";
+    zoom.style.top = "0px";
+    zoom.style.height = "auto";
+
+    const naturalHeight = zoom.scrollHeight;
+
+    const zoomHeight = Math.max(
+      baseHeight * 1.25,
+      naturalHeight
+    );
+
+    zoom.style.height = zoomHeight + "px";
+
+    zoom.style.top =
+      (y + (baseHeight - zoomHeight) / 2) + "px";
+
+    zoom.classList.add("visible");
+  }
+
+  /*
+    ВАЖНО:
+    getCell ищет только tbody td.
+    Поэтому шапка, названия столбцов
+    и выбор сценария не увеличиваются.
+  */
+
+  function getCell(target) {
+    if (!(target instanceof Element)) return null;
+
+    const cell = target.closest("tbody td");
+
+    if (!cell || !table.contains(cell)) return null;
+    if (!cell.textContent.trim()) return null;
+
+    return cell;
+  }
+
+  /* Наведение мышью */
+
+  table.addEventListener("mouseover", event => {
+    if (!canHover || pinnedCell) return;
+
+    const cell = getCell(event.target);
+
+    if (cell && cell !== activeCell) {
+      showZoom(cell);
+    }
+  });
+
+  table.addEventListener("mouseout", event => {
+    if (!canHover || pinnedCell) return;
+
+    const from = getCell(event.target);
+    const to = getCell(event.relatedTarget);
+
+    if (from && from !== to) {
+      hideZoom();
+    }
+  });
+
+  /* Клик и касание */
+
+  table.addEventListener("click", event => {
+    const cell = getCell(event.target);
+    if (!cell) return;
+
+    if (pinnedCell === cell) {
+      pinnedCell = null;
+      hideZoom();
+    } else {
+      pinnedCell = cell;
+      showZoom(cell);
+    }
+  });
+
+  /* Клавиатура */
+
+  table.addEventListener("focusin", event => {
+    const cell = getCell(event.target);
+    if (cell) showZoom(cell);
+  });
+
+  table.addEventListener("focusout", () => {
+    if (!pinnedCell) hideZoom();
+  });
+
+  table.addEventListener("keydown", event => {
+    const cell = getCell(event.target);
+    if (!cell) return;
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      cell.click();
+    }
+
+    if (event.key === "Escape") {
+      pinnedCell = null;
+      hideZoom();
+    }
+  });
+
+  /* Закрытие при клике за пределами таблицы */
+
+  document.addEventListener("pointerdown", event => {
+    if (!root.contains(event.target)) {
+      pinnedCell = null;
+      hideZoom();
+    }
+  });
+
+  /* Выпадающий список переключает сценарии */
+
+  select.addEventListener("change", function () {
+    renderScenario(this.value, true);
+  });
+
+  /* Пересчет положения увеличенной ячейки */
+
+  window.addEventListener("resize", () => {
+    if (activeCell && activeCell.isConnected) {
+      showZoom(activeCell);
+    } else {
+      hideZoom();
+    }
+  });
+
+  /* Начальное отображение */
+
+  renderScenario(select.value);
+})();
+</script>
+
+</body>
+</html>
